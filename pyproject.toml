@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "rl rubicks cube"
+version = "0.1.0"
+description = ""
+authors = ["shreyan241 <shreyansood@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+numpy = "^2.1.0"
+matplotlib = "^3.9.2"
+flake8 = "^7.1.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

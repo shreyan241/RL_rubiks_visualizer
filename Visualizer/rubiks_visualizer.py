@@ -1,7 +1,11 @@
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import widgets
-from quaternion_projection import Quaternion, project_points
+
+from Visualizer.quaternion_projection import Quaternion, project_points
+from Environment.cube import Cube
+from utils.utils import time_it
 
 """
 Sticker representation
@@ -37,8 +41,9 @@ After any rotation, this can be used to quickly restore the cube to
 canonical position.
 """
 
-class RubiksCube:
-  # Define basic attributes
+
+class RubiksCubeVisualizer:
+    # Define basic attributes
     default_plastic_color = 'black'
     default_face_colors = ["#ffffff", "#ffd500",
                            "#0046ad", "#009b48",
@@ -66,16 +71,19 @@ class RubiksCube:
 
     # Define rotation angles and axes for the six sides of the cube
     x, y, z = np.eye(3)
-    rots = [Quaternion.from_v_theta(np.eye(3)[0], theta) for theta in (np.pi / 2, -np.pi / 2)]
-    rots += [Quaternion.from_v_theta(np.eye(3)[1], theta) for theta in (np.pi / 2, -np.pi / 2, np.pi, 2 * np.pi)]
+    rots = [Quaternion.from_v_theta(np.eye(3)[0], theta)
+            for theta in (np.pi / 2, -np.pi / 2)]
+    rots += [Quaternion.from_v_theta(np.eye(3)[1], theta)
+             for theta in (np.pi / 2, -np.pi / 2, np.pi, 2 * np.pi)]
 
     # define face movements
     facesdict = dict(F=z, B=-z,
                      R=x, L=-x,
                      U=y, D=-y)
-    
-    def __init__(self, N=3, plastic_color=None, face_colors=None):
+
+    def __init__(self, cube_env=Cube(3), N=3, plastic_color=None, face_colors=None):
         self.N = N
+        self.environment = cube_env
         if plastic_color is None:
             self.plastic_color = self.default_plastic_color
         else:
@@ -88,16 +96,19 @@ class RubiksCube:
 
         self._move_list = []
         self._initialize_arrays()
-        
+        self._sync_with_cube_env()
+
     def _initialize_arrays(self):
         # initialize centroids, faces, and stickers.  We start with a
         # base for each one, and then translate & rotate them into position.
 
         """
         Define N^2 translations for each face of the cube.
+
         The translations array is used to calculate the position of each smaller square (cubie)
-        on a face of the Rubik's cube. In the context of the Rubik's cube, a face is composed of N x N smaller
-        squares (cubies). Each cubie needs to be translated (shifted) to its correct position on the face.
+        on a face of the Rubik's cube. In the context of the Rubik's cube, a face is composed of
+        N x N smaller squares (cubies). Each cubie needs to be translated (shifted) to its correct
+        position on the face.
         """
         cubie_width = 2. / self.N
         translations = np.array([[[-1 + (i + 0.5) * cubie_width,
@@ -116,14 +127,10 @@ class RubiksCube:
 
         for i in range(6):
             M = self.rots[i].as_rotation_matrix()
-            faces_t = np.dot(factor * self.base_face
-                             + translations, M.T)
-            stickers_t = np.dot(factor * self.base_sticker
-                                + translations, M.T)
-            face_centroids_t = np.dot(self.base_face_centroid
-                                      + translations, M.T)
-            sticker_centroids_t = np.dot(self.base_sticker_centroid
-                                         + translations, M.T)
+            faces_t = np.dot(factor * self.base_face + translations, M.T)
+            stickers_t = np.dot(factor * self.base_sticker + translations, M.T)
+            face_centroids_t = np.dot(self.base_face_centroid + translations, M.T)
+            sticker_centroids_t = np.dot(self.base_sticker_centroid + translations, M.T)
             colors_i = i + np.zeros(face_centroids_t.shape[0], dtype=int)
 
             # append face ID to the face centroids for lex-sorting
@@ -153,6 +160,11 @@ class RubiksCube:
         self._colors = self._colors[ind]
         self._faces = self._faces[ind]
 
+    def _sync_with_cube_env(self):
+        # Synchronize the visualizer's color array with the current state of the environment.
+        state = self.environment.get_current_state().colors
+        print(f"Syncing visualizer with cube environment. State:\n{state}")
+
     def rotate_face(self, f, n=1, layer=0):
         """Rotate Face"""
         if layer < 0 or layer >= self.N:
@@ -176,7 +188,7 @@ class RubiksCube:
                 self._move_list[-1] = (f, ntot, layer)
         else:
             self._move_list.append((f, n, layer))
-        
+
         v = self.facesdict[f]
         r = Quaternion.from_v_theta(v, n * np.pi / 2)
         M = r.as_rotation_matrix()
@@ -185,32 +197,41 @@ class RubiksCube:
         cubie_width = 2. / self.N
 
         # Create a flag array to identify which cubies belong to the specified layer
-        flag = ((proj > 0.9 - (layer + 1) * cubie_width) &
-                (proj < 1.1 - layer * cubie_width))
+        flag = ((proj > 0.9 - (layer + 1) * cubie_width) & (proj < 1.1 - layer * cubie_width))
 
         for x in [self._stickers, self._sticker_centroids,
                   self._faces]:
             x[flag] = np.dot(x[flag], M.T)
         self._face_centroids[flag, :3] = np.dot(self._face_centroids[flag, :3],
                                                 M.T)
-        
+
+        # Apply the move to the logical Cube environment
+        move_idx = self.environment.moves.index((f, n))
+        self.environment.apply_move(move_idx)
+        print(f"New state after move:\n{self.environment.get_current_state().colors}")
+        self._sync_with_cube_env()
+
     def draw_interactive(self):
         fig = plt.figure(figsize=(5, 5))
         fig.add_axes(InteractiveCube(self))
         return fig
 
+
 class InteractiveCube(plt.Axes):
     def __init__(self, cube=None,
+                 cube_env=None,
                  interactive=True,
                  view=(0, 0, 10),
                  fig=None, rect=[0, 0.16, 1, 0.84],
                  **kwargs):
+        if cube_env is None:
+            cube_env = Cube(3)
         if cube is None:
-            self.cube = RubiksCube(3)
-        elif isinstance(cube, RubiksCube):
+            self.cube = RubiksCubeVisualizer(cube_env, 3)
+        elif isinstance(cube, RubiksCubeVisualizer):
             self.cube = cube
         else:
-            self.cube = RubiksCube(cube)
+            self.cube = RubiksCubeVisualizer(cube_env, cube)
 
         self._view = view
         self._start_rot = Quaternion.from_v_theta((1, -1, 0),
@@ -255,7 +276,7 @@ class InteractiveCube(plt.Axes):
         self._shift = False  # shift key pressed
         self._digit_flags = np.zeros(10, dtype=bool)  # digits 0-9 pressed
 
-        self._current_rot = self._start_rot  #current rotation state
+        self._current_rot = self._start_rot  # current rotation state
         self._face_polys = None
         self._sticker_polys = None
 
@@ -283,13 +304,17 @@ class InteractiveCube(plt.Axes):
                          size=10)
 
     def _initialize_widgets(self):
-        self._ax_reset = self.figure.add_axes([0.75, 0.05, 0.2, 0.075])
+        self._ax_reset = self.figure.add_axes([0.35, 0.05, 0.2, 0.075])
         self._btn_reset = widgets.Button(self._ax_reset, 'Reset View')
         self._btn_reset.on_clicked(self._reset_view)
 
         self._ax_solve = self.figure.add_axes([0.55, 0.05, 0.2, 0.075])
         self._btn_solve = widgets.Button(self._ax_solve, 'Solve Cube')
         self._btn_solve.on_clicked(self._solve_cube)
+
+        self._ax_scramble = self.figure.add_axes([0.75, 0.05, 0.2, 0.075])
+        self._btn_scramble = widgets.Button(self._ax_scramble, 'Scramble Cube')
+        self._btn_scramble.on_clicked(lambda event: self._scramble_cube(event, num_scrambles=20))
 
     def _project(self, pts):
         return project_points(pts, self._current_rot, self._view, [0, 1, 0])
@@ -336,11 +361,10 @@ class InteractiveCube(plt.Axes):
     def rotate(self, rot):
         self._current_rot = self._current_rot * rot
 
-    def rotate_face(self, face, turns=1, layer=0, steps=5):
+    def rotate_face(self, face, turns=1, layer=0, steps=1):
         if not np.allclose(turns, 0):
-            for i in range(steps):
-                self.cube.rotate_face(face, turns * 1. / steps,
-                                      layer=layer)
+            for i in range(abs(turns)):
+                self.cube.rotate_face(face, int(np.sign(turns)), layer=layer)
                 self._draw_cube()
 
     def _reset_view(self, *args):
@@ -349,11 +373,31 @@ class InteractiveCube(plt.Axes):
         self._current_rot = self._start_rot
         self._draw_cube()
 
+    @time_it
     def _solve_cube(self, *args):
         move_list = self.cube._move_list[:]
         for (face, n, layer) in move_list[::-1]:
             self.rotate_face(face, -n, layer, steps=3)
         self.cube._move_list = []
+
+    def _scramble_cube(self, event=None, num_scrambles=10):
+        possible_moves = self.cube.environment.moves
+        for _ in range(num_scrambles):
+            move = random.choice(possible_moves)  # Choose a random move
+            self.rotate_face(face=move[0], turns=move[1])
+
+    def _display_solve_time(self, duration):
+        # Remove previous text if any
+        if hasattr(self, '_solve_time_text'):
+            self._solve_time_text.remove()
+
+        # Display the solve time on the GUI
+        self._solve_time_text = self.figure.text(0.05, 0.95,
+                                                 f"Solve Time: {duration:.2f} seconds",
+                                                 fontsize=12, color='red',
+                                                 transform=self.figure.transFigure)
+
+        self.figure.canvas.draw()  # Redraw the figure to update the text
 
     def _key_press(self, event):
         """Handler for key press events"""
@@ -387,12 +431,12 @@ class InteractiveCube(plt.Axes):
             else:
                 direction = 1
 
-            if np.any(self._digit_flags[:N]):
-                for d in np.arange(N)[self._digit_flags[:N]]:
+            if np.any(self._digit_flags[:self.cube.N]):
+                for d in np.arange(self.cube.N)[self._digit_flags[:self.cube.N]]:
                     self.rotate_face(event.key.upper(), direction, layer=d)
             else:
                 self.rotate_face(event.key.upper(), direction)
-                
+
         self._draw_cube()
 
     def _key_release(self, event):
@@ -446,26 +490,3 @@ class InteractiveCube(plt.Axes):
                 self.set_ylim(factor * ylim[0], factor * ylim[1])
 
                 self.figure.canvas.draw()
-
-if __name__ == '__main__':
-    import sys
-    try:
-        N = int(sys.argv[1])
-    except:
-        N = 3
-
-    c = RubiksCube(N)
-
-    # do a 3-corner swap
-    #c.rotate_face('R')
-    #c.rotate_face('D')
-    #c.rotate_face('R', -1)
-    #c.rotate_face('U', -1)
-    #c.rotate_face('R')
-    #c.rotate_face('D', -1)
-    #c.rotate_face('R', -1)
-    #c.rotate_face('U')
-
-    c.draw_interactive()
-
-    plt.show()
