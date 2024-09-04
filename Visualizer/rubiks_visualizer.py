@@ -3,9 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import widgets
 
-from Visualizer.quaternion_projection import Quaternion, project_points
-from Environment.cube import Cube
-from utils.utils import time_it
+from Visualizer import Quaternion, project_points
+from Environment import Cube
+from utils import time_it
 
 """
 Sticker representation
@@ -218,7 +218,7 @@ class RubiksCubeVisualizer:
 
 
 class InteractiveCube(plt.Axes):
-    def __init__(self, cube=None,
+    def __init__(self, visualizer=None,
                  cube_env=None,
                  interactive=True,
                  view=(0, 0, 10),
@@ -226,12 +226,12 @@ class InteractiveCube(plt.Axes):
                  **kwargs):
         if cube_env is None:
             cube_env = Cube(3)
-        if cube is None:
-            self.cube = RubiksCubeVisualizer(cube_env, 3)
-        elif isinstance(cube, RubiksCubeVisualizer):
-            self.cube = cube
+        if visualizer is None:
+            self.visualizer = RubiksCubeVisualizer(cube_env, 3)
+        elif isinstance(visualizer, RubiksCubeVisualizer):
+            self.visualizer = visualizer
         else:
-            self.cube = RubiksCubeVisualizer(cube_env, cube)
+            self.visualizer = RubiksCubeVisualizer(cube_env, visualizer)
 
         self._view = view
         self._start_rot = Quaternion.from_v_theta((1, -1, 0),
@@ -320,13 +320,13 @@ class InteractiveCube(plt.Axes):
         return project_points(pts, self._current_rot, self._view, [0, 1, 0])
 
     def _draw_cube(self):
-        stickers = self._project(self.cube._stickers)[:, :, :2]
-        faces = self._project(self.cube._faces)[:, :, :2]
-        face_centroids = self._project(self.cube._face_centroids[:, :3])
-        sticker_centroids = self._project(self.cube._sticker_centroids[:, :3])
+        stickers = self._project(self.visualizer._stickers)[:, :, :2]
+        faces = self._project(self.visualizer._faces)[:, :, :2]
+        face_centroids = self._project(self.visualizer._face_centroids[:, :3])
+        sticker_centroids = self._project(self.visualizer._sticker_centroids[:, :3])
 
-        plastic_color = self.cube.plastic_color
-        colors = np.asarray(self.cube.face_colors)[self.cube._colors]
+        plastic_color = self.visualizer.plastic_color
+        colors = np.asarray(self.visualizer.face_colors)[self.visualizer._colors]
         face_zorders = -face_centroids[:, 2]
         sticker_zorders = -sticker_centroids[:, 2]
 
@@ -364,7 +364,7 @@ class InteractiveCube(plt.Axes):
     def rotate_face(self, face, turns=1, layer=0, steps=1):
         if not np.allclose(turns, 0):
             for i in range(abs(turns)):
-                self.cube.rotate_face(face, int(np.sign(turns)), layer=layer)
+                self.visualizer.rotate_face(face, int(np.sign(turns)), layer=layer)
                 self._draw_cube()
 
     def _reset_view(self, *args):
@@ -375,13 +375,13 @@ class InteractiveCube(plt.Axes):
 
     @time_it
     def _solve_cube(self, *args):
-        move_list = self.cube._move_list[:]
+        move_list = self.visualizer._move_list[:]
         for (face, n, layer) in move_list[::-1]:
             self.rotate_face(face, -n, layer, steps=3)
-        self.cube._move_list = []
+        self.visualizer._move_list = []
 
     def _scramble_cube(self, event=None, num_scrambles=10):
-        possible_moves = self.cube.environment.moves
+        possible_moves = self.visualizer.environment.moves
         for _ in range(num_scrambles):
             move = random.choice(possible_moves)  # Choose a random move
             self.rotate_face(face=move[0], turns=move[1])
@@ -431,8 +431,8 @@ class InteractiveCube(plt.Axes):
             else:
                 direction = 1
 
-            if np.any(self._digit_flags[:self.cube.N]):
-                for d in np.arange(self.cube.N)[self._digit_flags[:self.cube.N]]:
+            if np.any(self._digit_flags[:self.visualizer.N]):
+                for d in np.arange(self.visualizer.N)[self._digit_flags[:self.visualizer.N]]:
                     self.rotate_face(event.key.upper(), direction, layer=d)
             else:
                 self.rotate_face(event.key.upper(), direction)

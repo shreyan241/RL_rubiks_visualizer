@@ -1,1 +1,1 @@
-from .utils import time_it
+from .visualizer_utils import time_it

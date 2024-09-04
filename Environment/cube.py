@@ -1,7 +1,9 @@
 from typing import Dict, List, Tuple, Union
 import numpy as np
+from torch import nn
 
 from Environment.CubeConfig import adj_faces, faces_to_colors
+from Models import ResnetModel
 
 
 class CubeState:
@@ -97,8 +99,40 @@ class Cube:
     def get_num_moves(self) -> int:
         return len(self.moves)
 
-    def expand(self, states: List[CubeState]) -> Tuple[List[List[CubeState]], List[np.ndarray]]:
+    def state_to_nnet_input(self, states: List[CubeState]) -> List[np.ndarray]:
+        """ Converts a list of CubeStates into a neural network input representation. """
+        states_np = np.stack([state.colors for state in states], axis=0)
 
+        representation_np: np.ndarray = states_np / (self.N ** 2)
+        representation_np: np.ndarray = representation_np.astype(self.dtype)
+
+        representation: List[np.ndarray] = [representation_np]
+
+        return representation
+
+    def get_nnet_model(self) -> nn.Module:
+        """ Initializes and returns a neural network model. """
+        state_dim: int = (self.N ** 2) * 6
+        nnet = ResnetModel(state_dim, 6, 5000, 1000, 4, 1, True)
+        return nnet
+
+    def expand(self, states: List[CubeState]) -> Tuple[List[List[CubeState]], List[np.ndarray]]:
+        """
+    Expands the current list of CubeStates by applying all possible moves to each state.
+
+    This function simulates every possible move from each of the provided states, resulting in a list of
+    new states for each original state. It also calculates the transition costs associated with each move.
+
+    Args:
+        states (List[CubeState]): A list of CubeState objects representing the current states of the cube.
+
+    Returns:
+        Tuple[List[List[CubeState]], List[np.ndarray]]:
+            - A list of lists where each sublist contains the resulting CubeState objects after applying
+              all possible moves to the corresponding input state.
+            - A list of NumPy arrays, where each array contains the transition costs for all possible moves
+              from the corresponding input state.
+        """
         # initialize
         num_states: int = len(states)
         num_env_moves: int = self.get_num_moves()
