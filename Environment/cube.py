@@ -1,9 +1,11 @@
 from typing import Dict, List, Tuple, Union
 import numpy as np
+
+from random import randrange
 from torch import nn
 
 from Environment.CubeConfig import adj_faces, faces_to_colors
-from Models import ResnetModel
+from Models.nnet import ResnetModel
 
 
 class CubeState:
@@ -59,21 +61,21 @@ class Cube:
 
     def next_state(self, states: List[CubeState], move: int) -> Tuple[List[CubeState], List[float]]:
         states_np = np.stack([x.colors for x in states], axis=0)
-        states_next_np, transition_costs = self._move_np(states_np, move)
+        states_next_np = self._move_np(states_np, move)
 
         states_next: List[CubeState] = [CubeState(x) for x in list(states_next_np)]
 
-        return states_next, transition_costs
+        return states_next
 
     def prev_state(self, states: List[CubeState], move: int) -> List[CubeState]:
         move: Tuple[str, int] = self.moves[move]
         move_rev_idx: int = np.where(np.array(self.moves_rev) == np.array(move))[0][0]
 
-        return self.next_state(states, move_rev_idx)[0]
+        return self.next_state(states, move_rev_idx)
 
     def apply_move(self, move: int):
         """Applies a move to the current state of the cube."""
-        next_states, _ = self.next_state([self.current_state], move)
+        next_states = self.next_state([self.current_state], move)
         self.current_state = next_states[0]  # Update the current state
 
     def get_current_state(self) -> CubeState:
@@ -89,6 +91,71 @@ class Cube:
             solved_states: List[CubeState] = [CubeState(self.solvedState.copy()) for _ in range(num_states)]
 
         return solved_states
+
+    def generate_states(self, num_states: int, backwards_range: Tuple[int, int]) -> Tuple[List[CubeState],
+                                                                                          np.ndarray,
+                                                                                          np.ndarray]:
+        """
+        Generates states by scrambling the cubes from the solved state and calculates the corresponding
+        final rewards and policies.
+
+        Args:
+            num_states (int): The number of initial solved states to generate.
+            backwards_range (Tuple[int, int]): The range of scrambles to apply to each state.
+
+        Returns:
+            Tuple[List[CubeState], np.ndarray, np.ndarray]:
+                - A list of CubeState objects representing the final scrambled states.
+                - A single policy array for each final scrambled state.
+                - A single reward array for each final scrambled state.
+        """
+        assert (num_states > 0)
+        assert (backwards_range[0] >= 0)
+
+        # Initialize
+        scrambs: List[int] = list(range(backwards_range[0], backwards_range[1] + 1))
+        num_env_moves: int = self.get_num_moves()
+
+        # Get goal states
+        states_np: np.ndarray = self.generate_solved_states(num_states, np_format=True)
+
+        # Scrambles
+        scramble_nums: np.array = np.random.choice(scrambs, num_states)
+        num_back_moves: np.array = np.zeros(num_states)
+
+        final_policies = np.zeros((num_states, num_env_moves))
+        final_rewards = np.zeros(num_states)
+
+        # Process states with 0 scrambles
+        zero_scramble_idxs = np.where(scramble_nums == 0)[0]
+        if len(zero_scramble_idxs) > 0:
+            final_rewards[zero_scramble_idxs] = 1.0
+            # Policies remain as zeros (no move needed)
+
+        # Go backward from goal state
+        moves_lt = num_back_moves < scramble_nums
+        while np.any(moves_lt):
+            idxs: np.ndarray = np.where(moves_lt)[0]
+            subset_size: int = int(max(len(idxs) / num_env_moves, 1))
+            idxs: np.ndarray = np.random.choice(idxs, subset_size)
+
+            move: int = randrange(num_env_moves)
+            states_np[idxs], rewards = self._move_np_scramble(states_np[idxs], move, scramble_nums[idxs])
+
+            # Generate policy vectors (one-hot encoded for the reverse move)
+            reverse_move_idx = self.moves_rev.index(self.moves[move])
+            final_policies[idxs, :] = 0  # Reset the policy array
+            final_policies[idxs, reverse_move_idx] = 1
+
+            # Store the final rewards
+            final_rewards[idxs] = rewards
+
+            num_back_moves[idxs] += 1
+            moves_lt[idxs] = num_back_moves[idxs] < scramble_nums[idxs]
+
+        states = [CubeState(x) for x in list(states_np)]
+
+        return states, final_policies, final_rewards
 
     def is_solved(self, states: List[CubeState]) -> np.ndarray:
         states_np = np.stack([state.colors for state in states], axis=0)
@@ -116,62 +183,74 @@ class Cube:
         nnet = ResnetModel(state_dim, 6, 5000, 1000, 4, 1, True)
         return nnet
 
-    def expand(self, states: List[CubeState]) -> Tuple[List[List[CubeState]], List[np.ndarray]]:
+    def expand(self, states: List[CubeState]) -> List[List[CubeState]]:
         """
-    Expands the current list of CubeStates by applying all possible moves to each state.
+        Expands the current list of CubeStates by applying all possible moves to each state.
 
-    This function simulates every possible move from each of the provided states, resulting in a list of
-    new states for each original state. It also calculates the transition costs associated with each move.
+        This function simulates every possible move from each of the provided states, resulting in a list of
+        new states for each original state.
 
-    Args:
-        states (List[CubeState]): A list of CubeState objects representing the current states of the cube.
+        Args:
+            states (List[CubeState]): A list of CubeState objects representing the current states of the cube.
 
-    Returns:
-        Tuple[List[List[CubeState]], List[np.ndarray]]:
-            - A list of lists where each sublist contains the resulting CubeState objects after applying
-              all possible moves to the corresponding input state.
-            - A list of NumPy arrays, where each array contains the transition costs for all possible moves
-              from the corresponding input state.
+        Returns:
+            List[List[CubeState]]:
+                A list of lists where each sublist contains the resulting CubeState objects after applying
+                all possible moves to the corresponding input state.
         """
-        # initialize
+        # Initialize
         num_states: int = len(states)
         num_env_moves: int = self.get_num_moves()
 
-        states_exp: List[List[CubeState]] = [[] for _ in range(len(states))]
+        states_np: np.ndarray = np.stack([state.colors for state in states], axis=0)
 
-        tc: np.ndarray = np.empty([num_states, num_env_moves])
+        # Initialize container for expanded states
+        states_exp = np.empty((num_states, num_env_moves, states_np.shape[1]), dtype=states_np.dtype)
 
-        # numpy states
-        states_np: np.ndarray = np.stack([state.colors for state in states])
-
-        # for each move, get next states, transition costs, and if solved
-        move_idx: int
-        # move: int
+        # Apply each possible move to all states
         for move_idx in range(num_env_moves):
-            # next state
-            states_next_np: np.ndarray
-            tc_move: List[float]
-            states_next_np, tc_move = self._move_np(states_np, move_idx)
+            states_next_np = self._move_np_(states_np, move_idx)
+            states_exp[:, move_idx, :] = states_next_np
 
-            # transition cost
-            tc[:, move_idx] = np.array(tc_move)
+        # Convert expanded states to list of lists of CubeState objects
+        states_exp_list: List[List[CubeState]] = [
+            [CubeState(states_exp[i, j]) for j in range(num_env_moves)] for i in range(num_states)
+        ]
 
-            for idx in range(len(states)):
-                states_exp[idx].append(CubeState(states_next_np[idx]))
+        return states_exp_list
 
-        # make lists
-        tc_l: List[np.ndarray] = [tc[i] for i in range(num_states)]
-
-        return states_exp, tc_l
-
-    def _move_np(self, states_np: np.ndarray, action: int):
-        action_key: tuple[str, int] = self.moves[action]
-
-        states_next_np: np.ndarray = states_np.copy()
+    def _move_np(self, states_np: np.ndarray, move: int):
+        action_key = self.moves[move]
+        states_next_np = states_np.copy()
         states_next_np[:, self.rotate_idxs_new[action_key]] = states_np[:, self.rotate_idxs_old[action_key]]
 
-        transition_costs: List[float] = [1.0 for _ in range(states_np.shape[0])]
-        return states_next_np, transition_costs
+        return states_next_np
+
+    def _move_np_scramble(self, states_np: np.ndarray, move: int, scramble_nums: np.ndarray) -> np.ndarray:
+        """
+        Applies a move to the given states and computes the resulting states and rewards.
+
+        Args:
+            states_np (np.ndarray): A NumPy array of states to be transformed.
+            move (int): The move to apply.
+            scramble_nums (np.ndarray): A NumPy array of current scramble numbers.
+
+        Returns:
+            np.ndarray: The resulting states after the move.
+            np.ndarray: The rewards associated with the move.
+        """
+        action_key = self.moves[move]
+        states_next_np = states_np.copy()
+        states_next_np[:, self.rotate_idxs_new[action_key]] = states_np[:, self.rotate_idxs_old[action_key]]
+
+        # Calculate rewards based on the current scramble number
+        rewards = 1 / (scramble_nums + 1)
+        # Print out rewards and
+        
+        # Ensure reward is 1 if scramble_nums is 0 (no scrambles)
+        rewards[scramble_nums == 0] = 1.0
+
+        return states_next_np, rewards
 
     def _precompute_rotation_idxs(self, cube_size: int,
                                   moves: List[Tuple[str, int]]) -> Tuple[

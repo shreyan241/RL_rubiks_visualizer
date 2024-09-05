@@ -1,0 +1,1 @@
+set PYTHONPATH=C:\Users\shrey\Desktop\RL rubicks cube

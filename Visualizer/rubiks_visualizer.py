@@ -96,7 +96,6 @@ class RubiksCubeVisualizer:
 
         self._move_list = []
         self._initialize_arrays()
-        self._sync_with_cube_env()
 
     def _initialize_arrays(self):
         # initialize centroids, faces, and stickers.  We start with a
@@ -160,11 +159,6 @@ class RubiksCubeVisualizer:
         self._colors = self._colors[ind]
         self._faces = self._faces[ind]
 
-    def _sync_with_cube_env(self):
-        # Synchronize the visualizer's color array with the current state of the environment.
-        state = self.environment.get_current_state().colors
-        print(f"Syncing visualizer with cube environment. State:\n{state}")
-
     def rotate_face(self, f, n=1, layer=0):
         """Rotate Face"""
         if layer < 0 or layer >= self.N:
@@ -209,7 +203,6 @@ class RubiksCubeVisualizer:
         move_idx = self.environment.moves.index((f, n))
         self.environment.apply_move(move_idx)
         print(f"New state after move:\n{self.environment.get_current_state().colors}")
-        self._sync_with_cube_env()
 
     def draw_interactive(self):
         fig = plt.figure(figsize=(5, 5))
