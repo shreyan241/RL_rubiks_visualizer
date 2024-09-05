@@ -245,10 +245,6 @@ class Cube:
 
         # Calculate rewards based on the current scramble number
         rewards = 1 / (scramble_nums + 1)
-        # Print out rewards and
-        
-        # Ensure reward is 1 if scramble_nums is 0 (no scrambles)
-        rewards[scramble_nums == 0] = 1.0
 
         return states_next_np, rewards
 
