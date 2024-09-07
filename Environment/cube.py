@@ -2,6 +2,7 @@ from typing import Dict, List, Tuple, Union
 import numpy as np
 
 from random import randrange
+import torch
 from torch import nn
 
 from Environment.CubeConfig import adj_faces, faces_to_colors
@@ -45,12 +46,15 @@ class Cube:
     Rubibk's Cube Base Class
     """
 
-    def __init__(self, N=3):
+    def __init__(self, N=3, current_state: CubeState = None):
         super().__init__()
         self.dtype = np.uint8
         self.N = N
         self.solvedState = self._get_solved_state()
-        self.current_state = CubeState(self.solvedState.copy())
+        if not current_state:
+            self.current_state = self._get_solved_state()
+        else:
+            self.current_state = current_state
         self.moves: List[Tuple[str, int]] = [(a, t) for a in ['U', 'D', 'L', 'R', 'B', 'F'] for t in [1, -1]]
         self.moves_rev: List[Tuple[str, int]] = [(a, t) for a in ['U', 'D', 'L', 'R', 'B', 'F'] for t in [-1, 1]]
 
@@ -61,7 +65,7 @@ class Cube:
 
     def next_state(self, states: List[CubeState], move: int) -> Tuple[List[CubeState], List[float]]:
         states_np = np.stack([x.colors for x in states], axis=0)
-        states_next_np = self._move_np(states_np, move)
+        states_next_np = self._move_np_(states_np, move)
 
         states_next: List[CubeState] = [CubeState(x) for x in list(states_next_np)]
 
@@ -85,10 +89,10 @@ class Cube:
     def generate_solved_states(self, num_states: int, np_format: bool = False) -> Union[
                                                                                 List[CubeState], np.ndarray]:
         if np_format:
-            solved_np: np.ndarray = np.expand_dims(self.solvedState.copy(), 0)
+            solved_np: np.ndarray = np.expand_dims(self.solvedState.colors.copy(), 0)
             solved_states: np.ndarray = np.repeat(solved_np, num_states, axis=0)
         else:
-            solved_states: List[CubeState] = [CubeState(self.solvedState.copy()) for _ in range(num_states)]
+            solved_states: List[CubeState] = [CubeState(self.solvedState.colors.copy()) for _ in range(num_states)]
 
         return solved_states
 
@@ -159,7 +163,7 @@ class Cube:
 
     def is_solved(self, states: List[CubeState]) -> np.ndarray:
         states_np = np.stack([state.colors for state in states], axis=0)
-        is_equal = np.equal(states_np, np.expand_dims(self.solvedState, 0))
+        is_equal = np.equal(states_np, np.expand_dims(self.solvedState.colors, 0))
 
         return np.all(is_equal, axis=1)
 
@@ -180,7 +184,41 @@ class Cube:
     def get_nnet_model(self) -> nn.Module:
         """ Initializes and returns a neural network model. """
         state_dim: int = (self.N ** 2) * 6
-        nnet = ResnetModel(state_dim, 6, 5000, 1000, 4, 1, True)
+        nnet = ResnetModel(state_dim=state_dim,
+                           one_hot_depth=6,
+                           h1_dim=5000,
+                           resnet_dim=1000,
+                           num_resnet_blocks=4,
+                           policy_out_dim=12,
+                           value_out_dim=1,
+                           batch_norm=True,
+                           dropout=0.1)
+        return nnet
+
+    def load_nnet_model(self, model_file: str, nnet: nn.Module, device=None):
+        """
+        Loads the model state dict from the checkpoint file.
+
+        Args:
+            model_file (str): The path to the checkpoint file.
+            nnet (nn.Module): The model to load the state dict into.
+            device (torch.device, optional): The device to load the model onto.
+
+        Returns:
+            nn.Module: The model with loaded weights.
+        """
+        if device is None:
+            checkpoint = torch.load(model_file)
+        else:
+            checkpoint = torch.load(model_file, map_location=device, weights_only=True)
+
+        # Load model state
+        nnet.load_state_dict(checkpoint['model_state_dict'])
+        print(f"Model loaded from {model_file}")
+
+        # Set the model to evaluation mode
+        nnet.eval()
+
         return nnet
 
     def expand(self, states: List[CubeState]) -> List[List[CubeState]]:
@@ -219,14 +257,14 @@ class Cube:
 
         return states_exp_list
 
-    def _move_np(self, states_np: np.ndarray, move: int):
+    def _move_np_(self, states_np: np.ndarray, move: int):
         action_key = self.moves[move]
         states_next_np = states_np.copy()
         states_next_np[:, self.rotate_idxs_new[action_key]] = states_np[:, self.rotate_idxs_old[action_key]]
 
         return states_next_np
 
-    def _move_np_scramble(self, states_np: np.ndarray, move: int, scramble_nums: np.ndarray) -> np.ndarray:
+    def _move_np_scramble(self, states_np: np.ndarray, move: int, scramble_nums: np.ndarray):
         """
         Applies a move to the given states and computes the resulting states and rewards.
 
@@ -247,6 +285,70 @@ class Cube:
         rewards = 1 / (scramble_nums + 1)
 
         return states_next_np, rewards
+
+    def scramble_states(self, states: List[CubeState], num_scrambles: int) -> List[CubeState]:
+        """
+        Scrambles a batch of CubeState objects by applying a sequence of random moves to each cube.
+
+        Args:
+            states (List[CubeState]): A list of CubeState objects representing the cubes to be scrambled.
+            num_scrambles (int): The number of random scrambles to apply to each CubeState.
+
+        Returns:
+            List[CubeState]: A list of CubeStates after scrambling.
+        """
+        # Generate random moves for each cube in the batch
+        # Shape: (len(states), num_scrambles) -> A sequence of moves for each cube
+        random_moves = np.random.choice(len(self.moves), size=(len(states), num_scrambles))
+
+        # Apply the sequence of random moves to each cube in the batch
+        scrambled_states = self.apply_move_sequence(states, random_moves)
+
+        return scrambled_states, random_moves
+
+    def apply_move_sequence(self, states: List[CubeState], move_sequences: np.ndarray) -> List[CubeState]:
+        """
+        Applies a sequence of moves to each CubeState object in the batch using the _move_np_batch function.
+
+        Args:
+            states (List[CubeState]): A list of CubeState objects to apply the move sequences to.
+            move_sequences (np.ndarray): A 2D array of move indices where each row is a sequence of moves for the
+                                        corresponding CubeState.
+
+        Returns:
+            List[CubeState]: The CubeState objects after applying the move sequences.
+        """
+        # Convert CubeState objects to a NumPy array of colors
+        states_np = np.stack([x.colors for x in states], axis=0)
+
+        # Apply the batch of move sequences to the batch of states
+        for i in range(move_sequences.shape[1]):  # Loop over number of scrambles
+            states_np = self._move_np_batch(states_np, move_sequences[:, i])
+
+        # Convert the updated states back to CubeState objects
+        states_next = [CubeState(colors) for colors in states_np]
+        return states_next
+
+    def _move_np_batch(self, states_np: np.ndarray, moves: np.ndarray) -> np.ndarray:
+        """
+        Applies a batch of moves to a batch of cube states.
+
+        Args:
+            states_np (np.ndarray): A NumPy array of cube states (batch_size, cube_size).
+            moves (np.ndarray): A NumPy array of move indices, one for each state in the batch.
+
+        Returns:
+            np.ndarray: Updated states after applying the moves.
+        """
+        # Copy the states to avoid modifying the original states
+        states_next_np = states_np.copy()
+
+        # Vectorized move application: apply each move to the corresponding state
+        for i, move in enumerate(moves):  # For each state, apply the corresponding move
+            action_key = self.moves[move]
+            states_next_np[i, self.rotate_idxs_new[action_key]] = states_np[i, self.rotate_idxs_old[action_key]]
+
+        return states_next_np
 
     def _precompute_rotation_idxs(self, cube_size: int,
                                   moves: List[Tuple[str, int]]) -> Tuple[
@@ -360,4 +462,4 @@ class Cube:
         return rotate_idxs_new, rotate_idxs_old
 
     def _get_solved_state(self):
-        return np.array(np.arange(0, 6 * self.N**2), dtype=self.dtype)
+        return CubeState(np.array(np.arange(0, 6 * self.N**2), dtype=self.dtype))

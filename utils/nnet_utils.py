@@ -3,7 +3,7 @@ import os
 
 import torch
 from tqdm import tqdm
-from torch import nn, optim
+from torch import nn
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import matplotlib.pyplot as plt
@@ -21,7 +21,8 @@ def get_device() -> torch.device:
 
 def train_nnet(nnet: torch.nn.Module, train_loader: DataLoader, val_loader: DataLoader,
                epochs: int, lr: float, weight_decay: float, model_dir: str,
-               checkpoint_interval: int, cube_len: int, patience: int = 5, device=None):
+               checkpoint_interval: int, cube_len: int, patience: int = 5, device=None,
+               start_epoch=0, optimizer=None):
     # Set device if not provided
     if device is None:
         device = get_device()
@@ -30,7 +31,8 @@ def train_nnet(nnet: torch.nn.Module, train_loader: DataLoader, val_loader: Data
     nnet.to(device)
 
     # Initialize optimizer, criterion, and scheduler
-    optimizer = optim.Adam(nnet.parameters(), lr=lr, weight_decay=weight_decay)
+    if optimizer is None:
+        optimizer = torch.optim.Adam(nnet.parameters(), lr=lr, weight_decay=weight_decay)
     criterion_value = nn.MSELoss()  # nn.SmoothL1Loss() Loss for value network
     criterion_policy = nn.CrossEntropyLoss()  # Loss for policy network
     scheduler = ReduceLROnPlateau(optimizer, mode='min', patience=5, factor=0.1)

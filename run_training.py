@@ -2,16 +2,16 @@ import argparse
 import os
 import random
 from typing import List
+import torch
 from torch.utils.data import DataLoader, ConcatDataset
 from Models import ResnetModel
-from utils import load_dataset, train_nnet
+from utils import load_dataset, train_nnet, get_device
 
 
 def main():
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Rubik's Cube Solver Training")
-    parser.add_argument('--cube_len', type=int, required=True,
-                        help="Length of the cube's side (e.g., 3 for a 3x3x3 cube)")
+    parser.add_argument('--cube_len', type=int, required=True, help="Length of the cube's side (e.g., 3 for a 3x3x3 cube)")
     parser.add_argument('--data_dir', type=str, required=True, help="Directory containing training data")
     parser.add_argument('--model_dir', type=str, required=True, help="Directory to save trained models")
     parser.add_argument('--epochs', type=int, default=100, help="Number of training epochs")
@@ -23,9 +23,13 @@ def main():
     parser.add_argument('--validation_size', type=float, required=True,
                         help="Proportion of files for validation (e.g., 0.2 for 20%)")
     parser.add_argument('--total_data_files', type=int, required=True, help="Total number of dataset files to use")
-    parser.add_argument('--maxback', type=int, required=True,
-                        help="Maximum number of back moves for data generation")
+    parser.add_argument('--maxback', type=int, required=True, help="Maximum number of back moves for data generation")
+    parser.add_argument('--resume_checkpoint', type=str, help="Path to the checkpoint file to resume training from", default=None)
     args = parser.parse_args()
+
+    # Set device to GPU if available, otherwise fall back to CPU
+    device = get_device()
+    print(f"Using device: {device}")
 
     # Ensure model directory exists
     if not os.path.exists(args.model_dir):
@@ -60,12 +64,28 @@ def main():
     nnet = ResnetModel(state_dim=state_dim, one_hot_depth=6, h1_dim=5000, resnet_dim=1000, num_resnet_blocks=4,
                        policy_out_dim=12, value_out_dim=1, batch_norm=True, dropout=0.1)
 
+    # Move the model to the GPU (if available)
+    nnet = nnet.to(device)
+
+    # Initialize optimizer
+    optimizer = torch.optim.Adam(nnet.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+
+    # Load from checkpoint if provided
+    start_epoch = 0
+    if args.resume_checkpoint and os.path.exists(args.resume_checkpoint):
+        checkpoint = torch.load(args.resume_checkpoint, map_location=device, weights_only=True)
+        nnet.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        start_epoch = checkpoint['epoch'] + 1
+        print(f"Resuming training from checkpoint: {args.resume_checkpoint}, starting at epoch {start_epoch}")
+
     # Train the model
     print(f"Starting training with {len(train_loader)} batches.")
     train_nnet(nnet=nnet, train_loader=train_loader, val_loader=val_loader,
                epochs=args.epochs, lr=args.lr, weight_decay=args.weight_decay,
                model_dir=args.model_dir, checkpoint_interval=args.checkpoint_interval,
-               patience=args.patience, cube_len=args.cube_len)
+               patience=args.patience, cube_len=args.cube_len, device=device,
+               start_epoch=start_epoch, optimizer=optimizer)
 
 
 def load_files(data_dir: str, indices: List[int], cube_len, maxback: int) -> ConcatDataset:

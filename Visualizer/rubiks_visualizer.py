@@ -209,6 +209,12 @@ class RubiksCubeVisualizer:
         fig.add_axes(InteractiveCube(self))
         return fig
 
+    def reset_cube(self):
+        """Reset the cube to its solved state."""
+        self.environment = Cube(self.N)  # Create a new solved cube
+        self._move_list = []  # Clear the move list
+        self._initialize_arrays()
+
 
 class InteractiveCube(plt.Axes):
     def __init__(self, visualizer=None,
@@ -226,6 +232,7 @@ class InteractiveCube(plt.Axes):
         else:
             self.visualizer = RubiksCubeVisualizer(cube_env, visualizer)
 
+        self._solved = True
         self._view = view
         self._start_rot = Quaternion.from_v_theta((1, -1, 0),
                                                   -np.pi / 6)
@@ -298,8 +305,8 @@ class InteractiveCube(plt.Axes):
 
     def _initialize_widgets(self):
         self._ax_reset = self.figure.add_axes([0.35, 0.05, 0.2, 0.075])
-        self._btn_reset = widgets.Button(self._ax_reset, 'Reset View')
-        self._btn_reset.on_clicked(self._reset_view)
+        self._btn_reset = widgets.Button(self._ax_reset, 'Reset Cube')
+        self._btn_reset.on_clicked(self._reset_cube)
 
         self._ax_solve = self.figure.add_axes([0.55, 0.05, 0.2, 0.075])
         self._btn_solve = widgets.Button(self._ax_solve, 'Solve Cube')
@@ -307,7 +314,7 @@ class InteractiveCube(plt.Axes):
 
         self._ax_scramble = self.figure.add_axes([0.75, 0.05, 0.2, 0.075])
         self._btn_scramble = widgets.Button(self._ax_scramble, 'Scramble Cube')
-        self._btn_scramble.on_clicked(lambda event: self._scramble_cube(event, num_scrambles=20))
+        self._btn_scramble.on_clicked(lambda event: self._scramble_cube(event, num_scrambles=10))
 
     def _project(self, pts):
         return project_points(pts, self._current_rot, self._view, [0, 1, 0])
@@ -366,18 +373,26 @@ class InteractiveCube(plt.Axes):
         self._current_rot = self._start_rot
         self._draw_cube()
 
+    def _reset_cube(self, *args):
+        """Reset the cube to its solved state and update the view."""
+        self.visualizer.reset_cube()
+        self._current_rot = self._start_rot  # Reset the view rotation
+        self._draw_cube()
+
     @time_it
     def _solve_cube(self, *args):
         move_list = self.visualizer._move_list[:]
         for (face, n, layer) in move_list[::-1]:
             self.rotate_face(face, -n, layer, steps=3)
         self.visualizer._move_list = []
+        self._solved = True
 
     def _scramble_cube(self, event=None, num_scrambles=10):
         possible_moves = self.visualizer.environment.moves
         for _ in range(num_scrambles):
             move = random.choice(possible_moves)  # Choose a random move
             self.rotate_face(face=move[0], turns=move[1])
+        self._solved = False
 
     def _display_solve_time(self, duration):
         # Remove previous text if any

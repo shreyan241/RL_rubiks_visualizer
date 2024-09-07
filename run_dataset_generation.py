@@ -7,7 +7,7 @@ def run_data_generation():
     back_max = 10
     data_dir = "Datasets"  # Adjust this path according to your project structure
     num_per_file = int(1e5)
-    num_files = 10
+    num_files = 20
     num_procs = 10
     start_idx = 0
 

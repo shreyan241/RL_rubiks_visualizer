@@ -1,0 +1,40 @@
+Scramble Length: 6
+Complete Solutions: 97 / 100
+Solution Rate: 97.00%
+Average Solution Length: 5.18
+Min Solution Length: 2
+Max Solution Length: 6
+Total Time: 3000.78 seconds
+
+Scramble Length: 7
+Complete Solutions: 89 / 100
+Solution Rate: 89.00%
+Average Solution Length: 5.63
+Min Solution Length: 1
+Max Solution Length: 7
+Total Time: 3000.80 seconds
+
+Scramble Length: 8
+Complete Solutions: 79 / 100
+Solution Rate: 79.00%
+Average Solution Length: 5.97
+Min Solution Length: 2
+Max Solution Length: 10
+Total Time: 3000.87 seconds
+
+Scramble Length: 9
+Complete Solutions: 71 / 100
+Solution Rate: 71.00%
+Average Solution Length: 7.17
+Min Solution Length: 5
+Max Solution Length: 11
+Total Time: 3001.02 seconds
+
+Scramble Length: 10
+Complete Solutions: 51 / 100
+Solution Rate: 51.00%
+Average Solution Length: 6.51
+Min Solution Length: 2
+Max Solution Length: 10
+Total Time: 3001.26 seconds
+
