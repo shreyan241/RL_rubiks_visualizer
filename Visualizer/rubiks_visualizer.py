@@ -232,6 +232,7 @@ class InteractiveCube(plt.Axes):
         else:
             self.visualizer = RubiksCubeVisualizer(cube_env, visualizer)
 
+        self.num_scrambles = 8
         self._solved = True
         self._view = view
         self._start_rot = Quaternion.from_v_theta((1, -1, 0),
@@ -297,7 +298,7 @@ class InteractiveCube(plt.Axes):
         self._initialize_widgets()
 
         # write some instructions
-        self.figure.text(0.05, 0.05,
+        self.figure.text(0.05, 0.55,
                          "Mouse/arrow keys adjust view\n"
                          "U/D/L/R/B/F keys turn faces\n"
                          "(hold shift for counter-clockwise)",
@@ -314,7 +315,7 @@ class InteractiveCube(plt.Axes):
 
         self._ax_scramble = self.figure.add_axes([0.75, 0.05, 0.2, 0.075])
         self._btn_scramble = widgets.Button(self._ax_scramble, 'Scramble Cube')
-        self._btn_scramble.on_clicked(lambda event: self._scramble_cube(event, num_scrambles=10))
+        self._btn_scramble.on_clicked(lambda event: self._scramble_cube(event, num_scrambles=self.num_scrambles))
 
     def _project(self, pts):
         return project_points(pts, self._current_rot, self._view, [0, 1, 0])
@@ -365,6 +366,7 @@ class InteractiveCube(plt.Axes):
         if not np.allclose(turns, 0):
             for i in range(abs(turns)):
                 self.visualizer.rotate_face(face, int(np.sign(turns)), layer=layer)
+                plt.pause(0.02)
                 self._draw_cube()
 
     def _reset_view(self, *args):
@@ -387,7 +389,7 @@ class InteractiveCube(plt.Axes):
         self.visualizer._move_list = []
         self._solved = True
 
-    def _scramble_cube(self, event=None, num_scrambles=10):
+    def _scramble_cube(self, event=None, num_scrambles=8):
         possible_moves = self.visualizer.environment.moves
         for _ in range(num_scrambles):
             move = random.choice(possible_moves)  # Choose a random move
