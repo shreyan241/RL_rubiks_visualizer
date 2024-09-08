@@ -101,7 +101,7 @@ class RubiksCubeVisualizer:
         # initialize centroids, faces, and stickers.  We start with a
         # base for each one, and then translate & rotate them into position.
 
-        """
+        """ nb
         Define N^2 translations for each face of the cube.
 
         The translations array is used to calculate the position of each smaller square (cubie)
