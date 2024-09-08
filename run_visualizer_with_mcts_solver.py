@@ -38,6 +38,7 @@ class InteractiveCubeWithMcts(InteractiveCube):
         self._solution_text = self.figure.text(0.05, 0.95, '', fontsize=10)
         self._current_move_text = self.figure.text(0.05, 0.90, '', fontsize=10, color='red')
         self._solve_lock = Lock()
+        self._tried = False
 
     def _initialize_widgets(self):
         super()._initialize_widgets()
@@ -46,14 +47,14 @@ class InteractiveCubeWithMcts(InteractiveCube):
     def _solve_cube_wrapper(self, event=None):
         if self._solve_lock.acquire(blocking=False):
             try:
-                if not hasattr(self, "_solved"):  # Check if the solution has already been found
+                if not hasattr(self, "_tried"):  # Check if the solution has already been found
                     self._solve_cube()
-                    self._solved = True  # Mark as solved so it doesn't repeat
             finally:
                 self._solve_lock.release()
 
     def _solve_cube(self, event=None):
         print("Solving cube...")
+        self._tried = True
         solution, complete = self.visualizer.mcts_solver_wrapper()
 
         if complete:

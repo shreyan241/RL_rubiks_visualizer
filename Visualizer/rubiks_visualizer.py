@@ -233,7 +233,6 @@ class InteractiveCube(plt.Axes):
             self.visualizer = RubiksCubeVisualizer(cube_env, visualizer)
 
         self.num_scrambles = 8
-        self._solved = True
         self._view = view
         self._start_rot = Quaternion.from_v_theta((1, -1, 0),
                                                   -np.pi / 6)
@@ -387,14 +386,12 @@ class InteractiveCube(plt.Axes):
         for (face, n, layer) in move_list[::-1]:
             self.rotate_face(face, -n, layer, steps=3)
         self.visualizer._move_list = []
-        self._solved = True
 
     def _scramble_cube(self, event=None, num_scrambles=8):
         possible_moves = self.visualizer.environment.moves
         for _ in range(num_scrambles):
             move = random.choice(possible_moves)  # Choose a random move
             self.rotate_face(face=move[0], turns=move[1])
-        self._solved = False
 
     def _display_solve_time(self, duration):
         # Remove previous text if any
