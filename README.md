@@ -42,7 +42,19 @@ You can train the model using the `run_training.py` script. Customize the traini
 - Training Setup:
   - CUDA version: 12.4
   - GPU: NVIDIA GeForce 1650 Ti
+  - Training Data: The model was trained on 800,000 randomly generated scrambled cube states and validated on 200,000 cube states, with a maximum scramble length of 10.
   - Pretrained weights for the 3x3 Rubik's Cube are located in the trained_models directory.
 
+## Algorithm Performance
+The Algorithm demonstrates high accuracy and efficiency for scramble lengths up to 10.
+
+
+| Scramble Length | Solution Rate (%)	| Average Solution Length |
+|-----------------|-------------------|-------------------------|
+|6	|97.00|	5.18|
+|7	|89.00|	5.63|
+|8	|79.00|	5.97|
+|9	|71.00|	7.17|
+|10	|51.00|	6.51|
 
 
