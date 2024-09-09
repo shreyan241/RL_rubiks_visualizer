@@ -36,8 +36,14 @@ conda activate rubiks_cube_solver
       - Set up dependencies.
       - Start the server and launch the visualizer.
 
+## Additional Commands
+- On Windows
   - To remove the Poetry environment and cached files, run - `run.bat clean`.
   - If you only want to install the dependencies and set up the environment, run: - `run.bat install`
+
+- On Linux
+  - To remove cached files: `./run.sh clean`
+  - To only install dependencies and set up the environment: `./run.sh install`
 
 ## Usage
 After installation, you can use the solver as follows:
