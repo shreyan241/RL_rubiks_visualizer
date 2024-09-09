@@ -46,7 +46,7 @@ You can train the model using the `run_training.py` script. Customize the traini
   - Pretrained weights for the 3x3 Rubik's Cube are located in the trained_models directory.
 
 ## Algorithm Performance
-The Algorithm demonstrates high accuracy and efficiency for scramble lengths up to 10.
+The Algorithm (model weights used: `trained_models/3x3/maxback10/best_model_epoch_97.pt`) demonstrates high accuracy and efficiency for scramble lengths up to 10.
 
 
 | Scramble Length | Solution Rate (%)	| Average Solution Length |
