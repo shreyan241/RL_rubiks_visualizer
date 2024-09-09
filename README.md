@@ -6,8 +6,4 @@ This project features a 3D Rubik's Cube visualizer and an advanced reinforcement
 ##Demo
 To see the project in action, check out the demo video available in the Demo folder of this repository. You can play the video directly from this README below:
 
-Demo Video:
 ![Rubik's Cube Demo](Demo/demo.gif)
-
-
-<!-- Make sure the path is correct for video playback -->
