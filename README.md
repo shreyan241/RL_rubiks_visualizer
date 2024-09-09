@@ -51,10 +51,10 @@ The Algorithm demonstrates high accuracy and efficiency for scramble lengths up 
 
 | Scramble Length | Solution Rate (%)	| Average Solution Length |
 |-----------------|-------------------|-------------------------|
-|6	|97.00|	5.18|
-|7	|89.00|	5.63|
-|8	|79.00|	5.97|
-|9	|71.00|	7.17|
-|10	|51.00|	6.51|
+|6	|97|	5.18|
+|7	|89|	5.63|
+|8	|79|	5.97|
+|9  |71|	7.17|
+|10 |51|	6.51|
 
 
