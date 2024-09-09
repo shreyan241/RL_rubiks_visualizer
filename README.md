@@ -11,10 +11,10 @@ Demo showcasing the algorithm solving a 3x3 Rubik's Cube scrambled 9 times in un
 ![Rubik's Cube Demo](Demo/output.gif)
 
 ## Installation & Setup
-This setup is intended for Windows OS. You need Python 3.11 or higher and Poetry version 1.3.8. If Poetry isn’t installed, run.bat will install it for you.
+This setup is intended for Windows or Linux. You need Python 3.11 or higher and Poetry version 1.3.8. If Poetry isn’t installed, the setup files `run.bat` (Windows) or `run.sh` (Linux) will install it for you.
 
 1. Prerequisites
-  - Option 1: If you already have Python 3.11 or higher, skip to running `run.bat`.
+  - Option 1: If you already have Python 3.11 or higher, skip to running the visualizer.
   - Option 2: Create a Conda environment for Python 3.11:
 ```
 conda create -n rubiks_cube_solver python=3.11
@@ -22,7 +22,15 @@ conda activate rubiks_cube_solver
 ```
 
 2. Running the Visualizer
-  - Run the run.bat file - `run.bat` in the command prompt.
+  - On Windwows
+    - Run the run.bat file - `run.bat` in the command prompt.
+
+  - On Linux
+    - Make the run.sh file executable and run it:
+    ```
+    chmod +x run.sh
+    ./run.sh
+    ```   
   - This will:
       - Install Poetry if not present.
       - Set up dependencies.
@@ -33,11 +41,18 @@ conda activate rubiks_cube_solver
 
 ## Usage
 After installation, you can use the solver as follows:
-- Start the application- `run.bat`
+- Start the application:
+  - On Windows: `run.bat`
+  - On Linux: `./run.sh`   
 - Use the GUI to interact with the Rubik's Cube:
   - Click 'Scramble Cube' to randomize the cube state.
   - Adjust 'Max Solve Time' and 'Number of Scrambles' as needed.
   - Click 'Solve Cube' to watch the algorithm solve the cube.
+- To stop the application:
+  - Close the GUI window.
+  - The script will automatically terminate the server process.
+
+Note: Ensure you're in the project directory when running these commands.
 
 ## Pretrained Models, Data Generation, and Training
 
