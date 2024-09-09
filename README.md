@@ -31,6 +31,14 @@ conda activate rubiks_cube_solver
   - To remove the Poetry environment and cached files, run - `run.bat clean`.
   - If you only want to install the dependencies and set up the environment, run: - `run.bat install`
 
+## Usage
+After installation, you can use the solver as follows:
+- Start the application- `run.bat`
+- Use the GUI to interact with the Rubik's Cube:
+  - Click 'Scramble Cube' to randomize the cube state.
+  - Adjust 'Max Solve Time' and 'Number of Scrambles' as needed.
+  - Click 'Solve Cube' to watch the algorithm solve the cube.
+
 ## Pretrained Models, Data Generation, and Training
 
 - Using Pretrained Models
