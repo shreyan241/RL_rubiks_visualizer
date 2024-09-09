@@ -6,7 +6,8 @@ This project features a 3D Rubik's Cube visualizer and an advanced reinforcement
 This project is designed to handle Rubik's cubes of any size, from 3x3 to NxN. The visualizer, algorithm, and model are fully generalized for cubes of any dimension. However, the current model has only been trained on 3x3 Rubik’s cubes, providing a foundation for future expansion to larger cubes.
 
 ## Demo
-To see the project in action, check out the demo video available in the Demo folder of this repository.
+Demo showcasing the algorithm solving a 3x3 Rubik's Cube scrambled 9 times in under 1 second (excluding model loading time).
+
 ![Rubik's Cube Demo](Demo/output.gif)
 
 ## Installation & Setup
