@@ -3,10 +3,10 @@
 set PYTHON=python
 set POETRY_VERSION=1.8.3
 
+
 if "%1"=="" goto all
 if "%1"=="install" goto install
 if "%1"=="run" goto run
-if "%1"=="runner" goto runner
 if "%1"=="clean" goto clean
 
 :all
@@ -17,11 +17,12 @@ call :run
 goto :eof
 
 :check_python
-%PYTHON% --version 2>NUL
+%PYTHON% -c "import sys; exit(0 if sys.version_info >= (3,11) else 1)" 2>NUL
 if errorlevel 1 (
-    echo Python is not installed or not in PATH. Please install Python 3.11.
+    echo Python 3.11 or higher is required but not found. Please install Python 3.11 or higher.
     exit /b 1
 )
+echo Python 3.11 or higher is installed.
 goto :eof
 
 :check_poetry
@@ -47,11 +48,6 @@ echo Starting the client...
 poetry run python client.py
 echo Stopping the server...
 taskkill /F /IM python.exe /T
-goto :eof
-
-:runner
-echo Starting the runner...
-poetry run python runner.py
 goto :eof
 
 :clean
