@@ -1,9 +1,9 @@
 # Reinforcement Learning Rubiks Cube Visualizer and Solver
 
 ## Description
-This project features a 3D Rubik's Cube visualizer and an advanced reinforcement learning-based solver using the Monte Carlo Tree Search (MCTS) algorithm. The visualizer was developed in Python with `matplotlib`, leveraging quaternion mathematics to rotate the cube in 3D space. The Rubik’s Cube visualizer was built using the [MagicCube repo](https://github.com/davidwhogg/MagicCube/tree/master) written by David W. Hogg and Jacob Vanderplas. It also implements a modified form of the ADI (Autodidactic Iteration) algorithm for solving the Rubik's Cube, based on the research paper: [Solving the Rubik’s Cube Without Human Knowledge](https://arxiv.org/abs/1805.07470).
+This project features a 3D Rubik's Cube visualizer and solver using the Monte Carlo Tree Search (MCTS) algorithm augmented by a deep reinforcement learning neural network. The visualizer was developed in Python with `matplotlib`, leveraging quaternion rotation matrices to rotate the cube in 3D space. The Rubik’s Cube visualizer was built using the [MagicCube repo](https://github.com/davidwhogg/MagicCube/tree/master) written by David W. Hogg and Jacob Vanderplas. The solver implements a modified form of the ADI (Autodidactic Iteration) algorithm for solving the Rubik's Cube, based on the research paper: [Solving the Rubik’s Cube Without Human Knowledge](https://arxiv.org/abs/1805.07470).
 
-This project is designed to handle Rubik's cubes of any size, from 3x3 to NxN. The visualizer, algorithm, and model are fully generalized for cubes of any dimension. However, the current model has only been trained on 3x3 Rubik’s cubes, providing a foundation for future expansion to larger cubes.
+This project is designed to handle Rubik's cubes of any size (NxN). The visualizer, algorithm, and model are fully generalized for cubes of any dimension. However, the current model has only been trained on 3x3 Rubik’s cubes, providing a foundation for future expansion to larger cubes.
 
 ## Demo
 Demo showcasing the algorithm solving a 3x3 Rubik's Cube scrambled 9 times in under 1 second (excluding model loading time).
@@ -11,7 +11,7 @@ Demo showcasing the algorithm solving a 3x3 Rubik's Cube scrambled 9 times in un
 ![Rubik's Cube Demo](Demo/output.gif)
 
 ## Installation & Setup
-This setup is intended for Windows or Linux. You need Python 3.11 or higher and Poetry version 1.3.8. If Poetry isn’t installed, the setup files `run.bat` (Windows) or `run.sh` (Linux) will install it for you.
+This setup is intended for both Windows and Linux. You need Python 3.11 or higher and Poetry version 1.3.8 (primary dependency manager). If Poetry isn’t installed, the setup files `run.bat` (Windows) or `run.sh` (Linux) will install it for you.
 
 1. Prerequisites
   - Option 1: If you already have Python 3.11 or higher, skip to running the visualizer.
