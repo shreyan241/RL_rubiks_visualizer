@@ -183,6 +183,7 @@ class Cube:
 
     def get_nnet_model(self) -> nn.Module:
         """ Initializes and returns a neural network model. """
+        # TODO : Serialize this using model_config.py
         state_dim: int = (self.N ** 2) * 6
         nnet = ResnetModel(state_dim=state_dim,
                            one_hot_depth=6,
