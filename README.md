@@ -45,12 +45,14 @@ conda activate rubiks_cube_solver
 
 ## Additional Commands
 - On Windows
-  - To remove the Poetry environment and cached files, run - `run.bat clean`.
-  - If you only want to install the dependencies and set up the environment, run: - `run.bat install`
+  - To only install dependencies and set up the environment: `run.bat install`
+  - Run the project: `run.bat run`
+  - To remove cached files: `run.bat clean`
 
 - On Linux
-  - To remove cached files: `./run.sh clean`
   - To only install dependencies and set up the environment: `./run.sh install`
+  - Run the project: `./run.sh run`
+  - To remove cached files: `./run.sh clean`
 
 ## Usage
 After installation, you can use the solver as follows:
