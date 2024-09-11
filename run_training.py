@@ -101,9 +101,8 @@ def load_files(data_dir: str, indices: List[int], cube_len, maxback: int) -> Con
         ConcatDataset: The concatenated dataset from all selected files.
     """
     datasets = []
-    cube_dir = os.path.join(data_dir, f"{cube_len}x{cube_len}")
     for idx in indices:
-        file_path = os.path.join(cube_dir, f"maxback{maxback}_idx{idx}.pkl")
+        file_path = os.path.join(data_dir, f"maxback{maxback}_idx{idx}.pkl")
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Dataset file {file_path} not found.")
         dataset = load_dataset(file_path)

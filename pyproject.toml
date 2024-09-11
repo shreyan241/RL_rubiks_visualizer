@@ -7,12 +7,11 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-numpy = "1.24.4"
+numpy = "^1.26"
 matplotlib = "^3.9.2"
 flake8 = "^7.1.1"
 tqdm = "^4.66.5"
 flask = "^3.0.3"
-google-cloud-storage = "^2.18.2"
 poetry = "^1.8.3"
 torch = "^2.4.1"
 
