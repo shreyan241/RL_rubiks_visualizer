@@ -11,7 +11,7 @@ Demo showcasing the algorithm finding a solution for a 3x3 Rubik's Cube scramble
 ![Rubik's Cube Demo](Demo/output.gif)
 
 ## Installation & Setup
-This setup is intended for both Windows and Linux. You will need Python 3.11 or higher and Poetry version 1.8.3, which is the primary dependency manager. If Poetry isn’t installed, you can install it globally in your base Python environment and create a Conda environment (or use an existing Python 3.11+ installation) to manage the dependencies.
+This setup is intended for both Windows and Linux. You will need Python 3.11 or higher and Poetry version 1.8.3, which is the primary dependency manager. If Poetry isn’t installed, you can install it globally in your base Python environment and create a Conda environment (or use an existing Python 3.11+ installation) to install the dependencies.
 
 ### 1. Prerequisites
 - Poetry Installation
@@ -33,7 +33,7 @@ conda activate rubiks_cube_solver
     - Run the run.bat file - `run.bat` in the command prompt.
 
   - On Linux
-    - Make the run.sh file executable and run it:
+    - Make the `run.sh` file executable and run it:
     ```
     chmod +x run.sh
     ./run.sh
