@@ -8,7 +8,7 @@ This project is designed to handle Rubik's cubes of any size (NxN). The visualiz
 ## Demo
 Demo showcasing the algorithm finding a solution for a 3x3 Rubik's Cube scrambled 9 times in under 1 second (excluding model loading time).
 
-![Rubik's Cube Demo](Demo/output.gif)
+![Rubik's Cube Demo](Demo/rubiks.gif)
 
 ## Installation & Setup
 This setup is intended for both Windows and Linux. You will need Python 3.11 or higher and Poetry version 1.8.3, which is the primary dependency manager. If Poetry isn’t installed, you can install it globally in your base Python environment and create a Conda environment (or use an existing Python 3.11+ installation) to install the dependencies.
